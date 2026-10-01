@@ -1,0 +1,45 @@
+# Merge these locations into the existing HTTPS server block for ayuxuexi.com.
+# Do not replace the existing TLS settings or the final Private-app proxy.
+
+# Public-index Next.js chunks. `assetPrefix` is /_seo.
+location ^~ /_seo/_next/ {
+    alias /srv/ayuxuexi-index/current/_next/;
+    expires 30d;
+    add_header Cache-Control "public, immutable";
+}
+
+# Images and other deliberately public assets.
+location ^~ /seo-assets/ {
+    alias /srv/ayuxuexi-index/current/seo-assets/;
+    expires 7d;
+}
+
+# Discovery files are owned by the public index repository.
+location = /robots.txt {
+    alias /srv/ayuxuexi-index/current/robots.txt;
+}
+
+location = /sitemap.xml {
+    alias /srv/ayuxuexi-index/current/sitemap.xml;
+}
+
+location = /llms.txt {
+    alias /srv/ayuxuexi-index/current/llms.txt;
+}
+
+# Only these explicit content namespaces are served from the Public build.
+location ~ ^/(faq|guide|zhuansi|about)(?:/.*)?$ {
+    root /srv/ayuxuexi-index/current;
+    try_files $uri $uri.html $uri/index.html =404;
+}
+
+# Keep the existing Private application as the catch-all.
+# Existing proxy headers and timeout settings should be preserved.
+location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
